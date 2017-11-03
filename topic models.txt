@@ -1,0 +1,14 @@
+Potential topic models we can use:
+
+1. PLSA (probabilistic latent semantic analysis): One of the first topic models
+
+
+2. LDA (Latent Dirichlet allocation): 
+*Generalization of PLSA. Currently the most popular topic model. 
+                                      
+*Not the most effective in classifying tweets (perhaps due to the short doc length).
+*Each doc is a prob distrib over topics, each topic is a prob distrib over words.
+                                      
+
+3. Pachinko Allocation:
+*Improves LDA by also modeling correlations between different topics.
