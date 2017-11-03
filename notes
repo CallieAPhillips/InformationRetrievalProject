@@ -1,0 +1,13 @@
+info retrieval project notes: 
+collect tweets --> follow established examples, start early
+ML techniques --> cluser then classify? (Problem of how many clusters to establish)
+                       --> LDA unsupervised topic modeling (any different than other research?)
+How to define topics --> ???
+*predict time of tweet based on topic?
+short text --> hard --> add synonyms of important words
+use hashtags for topics
+train on popular hashtags, ok to go back and group different topics together
+search for paper "topic model twitter"
+look up other topic models (LDA did not perform that well)
+what if tweet doesn't have hashtags (harder, need huerisitic, how do you know it is accurate?)
+manually label another hundred or so tweets with hashtags in the testing set so you can evaluate
