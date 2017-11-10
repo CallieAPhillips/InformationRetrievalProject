@@ -4,11 +4,18 @@ Potential topic models we can use:
 
 
 2. LDA (Latent Dirichlet allocation): 
-*Generalization of PLSA. Currently the most popular topic model. 
+* Generalization of PLSA. Currently the most popular topic model. 
                                       
-*Not the most effective in classifying tweets (perhaps due to the short doc length).
-*Each doc is a prob distrib over topics, each topic is a prob distrib over words.
+* Not the most effective in classifying tweets (perhaps due to the short doc length).
+* Each doc is a prob distrib over topics, each topic is a prob distrib over words.
                                       
 
 3. Pachinko Allocation:
-*Improves LDA by also modeling correlations between different topics.
+* Improves LDA by also modeling correlations between different topics.
+
+4. Gaussian Mixture Model (GMM):
+* Uses a sliding window to go across documents
+* This is an improvement because this does not look at each documents frequency 
+while not having to aggregate documents to deal with short document length
+
+----------------------------

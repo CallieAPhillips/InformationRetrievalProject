@@ -12,3 +12,86 @@ train on popular hashtags, ok to go back and group different topics together
 *look up other topic models (LDA did not perform that well)
 
 *what if tweet doesn't have hashtags (harder, need huerisitic, how do you know it is accurate?) -->don't need to classify these
+-----------------------------------------------
+
+Approach 1 (Prof. Wang's suggestion):
+
+Stage 1: Hashtags
+1. Collect and process the most popular hashtags
+2. For each hashtag, manually define an arbitrary topic for it
+3. Once labeling is complete, go back and regroup the list of concepts into a more condensed set
+(i.e. if there is a concept "football" and "baseball", join all their tweets together into one concept "sports")
+
+Stage 2: Training
+1. Collect tweets only containing the collected hashtags
+2. Split the dataset into a training and testing set
+3. Use the training set to build the model (look at the hashtag to figure out a concept and assign the words to that concept)
+
+Stage 3: Testing
+1. Run the model on the testing set (which hides the hashtag from the model)
+2. Randomly sample a hundred or so tweets from the testing set and see if the predictions match up
+
+*For stage 2 part 3, maybe not all words should be assigned...
+Either think of a heuristic to choose and/or prune the ranked list of words in each concept
+
+-----------------------------------------------
+
+Approach 2:
+
+Stage 1: Hashtags
+1. Collect and process most popular hashtags
+2. For each hashtag define a score for each of the 12 defined concepts
+3. Distribute 12 points to the concepts of each hashtag (i.e. if a tweet is about music and culture
+then give Music 6 points, Arts/Culture 6 points, and the rest get 0)
+
+Stage 2: Start building model (Training)
+1. Collect only tweets that contain a hashtag in the set above and then process them
+2. For each tweet, use its hashtag to assign each word to a concept (not clear how this will be done
+just yet... but should make use of the relative points each concept has)
+* Now each concept will have an associated list of words and hashtags 
+* Ideally the words should be ranked in some order of relevance...
+
+Stage 3: Improve model (Training, continued)
+1. Collect tweets with any hashtag (not necessarily the ones collected in Stage 1)
+2. For each tweet, have the model predict the topic based on the content and the hashtag iff the hashtag has been seen before.
+If a concept has several highly ranked words in the content then its chances of getting picked increases.
+3. If it encounters a new hashtag, then assign that hashtag to the concept 
+4. If it encounters a new word, then assign that word to the concept (introduces noise but chance to grow concept vocab)
+5. Prune the model by removing the lowest ranked 10% of the words for each concept
+6. Iterate this stage to keep improving...
+
+Stage 4: Testing and Evaluation
+1. Run the model on the testing set
+2. Randomly sample a 100 or so tweets from the testing set
+3. Have several users/"experts" choose a topic for each of the selected tweets (without seeing the model's prediction)
+4. Find the topic with the highest freqeuncy per tweet
+5. Compare the results of the human experts and the model
+
+*Note that there should be two different collections of data. 
+The first set will only be for stage 2. 
+The second set will be for stages 3 and 4 (have to split this set into training and testing)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
