@@ -73,9 +73,26 @@ The second set will be for stages 3 and 4 (have to split this set into training 
 
 
 
+-------------------------------------
+look into how twitter makes the broad classification (manual, good! Then you can make it automatic)
+What does twitter return? Does it use popular channels (hardcoded?). If so, then they wouldn't be able to apply
+the classifier on a tweet by tweet basis
 
+go through all tweets and find TF-IDF value per word for all words
+IDEA (simple): define/learn key words per topic and then use these to search for tweets (creates ranked lists per topic)
+Maybe use TF-IDF (especially IDF, you don't want very popular words) to prune the keywords per concept
 
+Read first part of new paper emailed
 
+Processing: filter length, number of retweets
+
+--------------------------------------
+
+LDA/MALLET notes:
+
+Use cmd so that Mallet can for MALLET files from the given input text files. 
+Not clear what the topics are constructed on... Are the topics global across all documents? What is printed?
+For now I am working with LDA.java which is deprecated but it is easier to understand. Should move to ParallelTopicModels later.
 
 
 
