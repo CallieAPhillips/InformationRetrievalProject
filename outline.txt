@@ -1,0 +1,38 @@
+Tweet Classification Project Outline:
+
+1. Gather a small set of very popular hashtags
+2. Manually label each hashtag as a topic/classification (i.e. define 20 classifications to 100 different hashtags)
+3. Gather a large set of tweets that contain a hashtag from the step 1.
+4. Run the ParallelTopicModel in Mallet on the training set
+5. From the lda topic model in step 5, gather the estimated topic distribution vector for each tweet
+
+i.e. for tweet1, its estimated topic distribution might be
+p( z | document = tweet1 ) = [ p(z=topic1 | document = tweet1), p(z=topic2 | document = tweet1), ... p(z=topicK | document = tweet1)]
+where p(z|d) equals the probability of observing topic z given we are in document d
+
+6. Concatenate each tweet's topic distribution vector with its bag-of-words vector (in our case the FeatureSequence object each Instance has) and its classification based on its hashtag
+
+i.e. for tweet1, if its BoW representation is:
+[0,4,1,0,2, ... 1] where term i in the number of occurences in the document of the ith word in the dictionary
+then the concatenated vector for this tweet will be 
+[ p(z=topic1 | document = tweet1), ... p(z=topicK | document = tweet1), 0, 4, 1, 0, 2, ... 1, "sports"] 
+which is a feature vector of size K+V where K = # of topics, V = # of words in the dictionary
+
+7. Stack the feature vector of each tweet on top of each other so that it forms a matrix, 
+where each row of the matrix is the feature vector of a given tweet
+
+8. Split the matrix into a training set and a testing set (perhaps a 90-10 split)
+9. Run a machine learning classification algorithm (i.e. support vector machine, random forests) on this training matrix subset
+10. Run the ML model from step 9 on the testing matrix subset (use the classification column in this set only to measure the prediction accuracy)
+11. Return the final classification accuracy
+
+---------------------------------------------------------
+
+Things to note:
+
+* Must find a reasonable way to gather popular hashtags, and then gather a large set of tweets that only include these hashtags
+* Process the tweets before the CSV file is constructed (mainly strip any commas from the tweet's content before writing to the file)
+* Must decide on the appropriate number of topics to be estimated (this should probably be the number of labels we have at the end of step 2)
+* Must decide on the appropriate ML algorithm to apply (and also a framework for ML algorithms, I believe Mallet may already have some)
+(keep in mind that there is likely going to more features in the matrix than actual tweets, which maybe troublesome)
+* For step 6, professor Wang suggested a TF-IDF bag-of-words representation will work better
