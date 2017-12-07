@@ -15,7 +15,7 @@ US_code = 23424977
 trend_json = twitter.trends.place(_id=US_code)
 for trends in trend_json[0]["trends"]:
     trend = trends["name"]
-    if trend[0] == '#' and trend not in hashtags:     # only keep it if the trend is a hashtag
+    if trend[0] == '#' and trend + "\n" not in hashtags:     # only keep it if the trend is a hashtag
         hashtags.append(trend + "\n")   # add new line char so each hashtag is written on its own line in the file
         # how the json result looks (for reference)
         # [

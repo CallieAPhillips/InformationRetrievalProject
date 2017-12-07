@@ -3,7 +3,7 @@ from keys import *
 from twitter import Twitter, OAuth
 
 tweetCountPerHashtag = 100
-newTweetFile = open('tweets.txt', 'w')
+newTweetFile = open('tweets.csv', 'w')
 oauth = OAuth(ACCESS_TOKEN, ACCESS_SECRET, CONSUMER_KEY, CONSUMER_SECRET)
 
 # Initiate the connection to Twitter
@@ -25,7 +25,10 @@ for hashtag in popularHashtags:
 
     for tweet in tweets:
         # Take out the tweet's id
-        id =tweet['id_str']
+        user_name =str(tweet['user']['name'].replace(",", "").encode('ascii', 'ignore')).strip("b").strip("'")
+
+        # Take out user date
+        date = tweet["created_at"]
 
         # Take out the tweet's contents
         # remove commas from string content, encode (get rid of emojis, etc)
@@ -34,14 +37,15 @@ for hashtag in popularHashtags:
 
         # Take out the tweet's hashtags
         hashtagList = tweet['entities']['hashtags']
-        allHashtags =""  # concatenate all the hashtags to a string (with space inbetween each)
+        allHashtags =""  # concatenate all the hashtags to a string (with comma inbetween each)
         for tag in hashtagList:
-            allHashtags+=tag["text"] + " "
+            tag = tag["text"].replace(",", "")
+            allHashtags+=tag + ","
         # remove commas and encode for good measure
-        allHashtags = str(allHashtags.replace(",", "").encode("utf-8"))
+        allHashtags = str(allHashtags.encode("utf-8"))
         allHashtags = allHashtags.strip("b").strip("'")
 
-        newTweetFile.write(id + "," + contents + "," + allHashtags + "\n")
+        newTweetFile.write("no category yet" + "," + user_name+ ',' + date + "," + contents + "," + allHashtags + "\n")
 
         # if(requests&rateLimit==0):
         #     time.sleep(60*15)

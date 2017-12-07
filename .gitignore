@@ -2,4 +2,5 @@
 keys.py
 *.txt
 *.json
+*.csv
 
