@@ -30,8 +30,6 @@ where each row of the matrix is the feature vector of a given tweet
 
 Things to note:
 
-* Must find a reasonable way to gather popular hashtags, and then gather a large set of tweets that only include these hashtags
-* Process the tweets before the CSV file is constructed (mainly strip any commas from the tweet's content before writing to the file)
 * Must decide on the appropriate number of topics to be estimated (this should probably be the number of labels we have at the end of step 2)
 * Must decide on the appropriate ML algorithm to apply (and also a framework for ML algorithms, I believe Mallet may already have some)
 (keep in mind that there is likely going to more features in the matrix than actual tweets, which maybe troublesome)

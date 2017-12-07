@@ -1,4 +1,5 @@
-Keys.java
-tweets.csv
-tweetsNoDate.csv
 .idea/*
+keys.py
+*.txt
+*.json
+
