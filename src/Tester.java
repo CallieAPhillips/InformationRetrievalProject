@@ -9,8 +9,12 @@ import java.util.Formatter;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Locale;
+import java.util.Scanner;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
+
+import com.sun.org.apache.bcel.internal.generic.POP;
+import com.sun.xml.internal.fastinfoset.sax.Features;
 
 import cc.mallet.pipe.CharSequence2TokenSequence;
 import cc.mallet.pipe.CharSequenceLowercase;
@@ -19,55 +23,40 @@ import cc.mallet.pipe.SerialPipes;
 import cc.mallet.pipe.TokenSequence2FeatureSequence;
 import cc.mallet.pipe.TokenSequenceRemoveStopwords;
 import cc.mallet.topics.ParallelTopicModel;
+import cc.mallet.topics.TopicInferencer;
 import cc.mallet.types.Alphabet;
 import cc.mallet.types.FeatureSequence;
 import cc.mallet.types.IDSorter;
+import cc.mallet.types.Instance;
 import cc.mallet.types.InstanceList;
 import cc.mallet.types.LabelSequence;
 
 public class Tester {
 
-	private static void getAllFiles(File curDir) {
+	// set the number of topics in the LDA
+	public static final int NUM_TOPICS = 50;
 
-		File[] filesList = curDir.listFiles();
-		for (File f : filesList) {
-			if (f.isDirectory())
-				System.out.println(f.getName());
-			if (f.isFile()) {
-				System.out.println(f.getName());
-			}
+	// the public mapping of a hashtag to a certain topic
+	// this is manually defined in the popular hashtag text file
+	public static HashMap<String, String> popularHashtags;
+
+	/**
+	 * EDIT THE FILE READING ONCE THE HASHTAGS ARE LABELED! Read in the popular
+	 * hashtags from the given file. Use the manually labeled classifications of
+	 * each hashtags to create the public HashMap
+	 * 
+	 * @param filename
+	 */
+	public static void defineHashtagMapping(String filename) throws FileNotFoundException {
+
+		popularHashtags = new HashMap<>();
+
+		Scanner sc = new Scanner(new File(filename));
+		while (sc.hasNext()) {
+			String hashtag = sc.nextLine();
+			popularHashtags.put(hashtag, hashtag);
 		}
 
-	}
-
-	public static void outputSample() {
-
-		HashMap<String, Integer> bow = new HashMap<>();
-		String str = "Elizabeth Needham (died 3 May 1731), also known as Mother Needham, was an English procuress and brothel-keeper of 18th-century London, who has been identified as the bawd greeting Moll Hackabout in the first plate of William Hogarth's series of satirical etchings, A Harlot's Progress. Although Needham was notorious in London at the time, little is recorded of her life, and no genuine portraits of her survive. Her house was the most exclusive in London and her customers came from the highest strata of fashionable society, but she eventually crossed the moral reformers of the day and died as a result of the severe treatment she received after being sentenced to stand in the pillory.\r\n"
-				+ "";
-		StringBuilder s = new StringBuilder(str);
-		for (int i = 0; i < s.length(); i++) {
-			if (s.charAt(i) == '.') {
-				s.deleteCharAt(i);
-				i--;
-			}
-		}
-		str = s.toString();
-		String[] tokens = str.split(" ");
-		for (String token : tokens) {
-			if (bow.get(token) == null) {
-				bow.put(token, 1);
-			} else {
-				Integer count = bow.get(token);
-				bow.put(token, count + 1);
-			}
-		}
-
-		ArrayList<String> keys = new ArrayList<String>(bow.keySet());
-		Collections.sort(keys);
-		for (String token : keys) {
-			System.out.println(token + ": " + bow.get(token));
-		}
 	}
 
 	public static Pipe buildPipe() {
@@ -86,8 +75,8 @@ public class Tester {
 		InstanceList trainInstances;
 		TweetIterator iter = null;
 		try {
-			// the first term is the category, the remaining is extracted as the tweet
-			// itself
+			// the first term is the category,
+			// the remaining is extracted as the tweet itself
 			// will later be processed to extract user, date, content, and hashtags
 			iter = new TweetIterator(new FileReader(f), Pattern.compile("(.*?)\\,\\s*(.*)"), 2, 1, -1);
 
@@ -102,80 +91,139 @@ public class Tester {
 
 	public static void main(String[] args) {
 
+		try {
+			defineHashtagMapping("popularHashtags.txt");
+		} catch (FileNotFoundException e1) {
+			e1.printStackTrace();
+		}
+
 		Pipe pipe = buildPipe();
 		InstanceList ilist = readFile(new File("tweets.csv"), pipe);
 
 		System.out.println("Corpus Dictionary:");
-		Alphabet dict = ilist.get(0).getAlphabet();
-		dict.dump();
+		Alphabet dictionary = ilist.getAlphabet();
+		dictionary.dump();
 		System.out.println();
 
-		for (int i = 0; i < ilist.size(); i++) {
-			TweetInstance tweet = (TweetInstance) ilist.get(i);
-			FeatureSequence fs = (FeatureSequence) tweet.getData();
-			// System.out.println("Iteration " + i);
-			System.out.print("Name: " + tweet.getName() + "\nTarget: " + tweet.getTarget() + "\n");
-			System.out.print("Data: ");
+		// for (int i = 0; i < ilist.size(); i++) {
+		// TweetInstance tweet = (TweetInstance) ilist.get(i);
+		// FeatureSequence fs = (FeatureSequence) tweet.getData();
+		// // System.out.println("Iteration " + i);
+		// System.out.print("Name: " + tweet.getName() + "\nTarget: " +
+		// tweet.getTarget() + "\n");
+		// System.out.print("Data: ");
+		//
+		// for (int j = 0; j < fs.size(); j++) {
+		// System.out.print(dictionary.lookupObject(fs.getIndexAtPosition(j)) + " ");
+		// }
+		// System.out.println("\n");
+		//
+		// }
 
-			for (int j = 0; j < fs.size(); j++) {
-				System.out.print(dict.lookupObject(fs.getIndexAtPosition(j)) + " ");
-			}
-			System.out.println("\n");
-
-		}
-
-		int numTopics = 50;
-		ParallelTopicModel model = new ParallelTopicModel(numTopics, 1.0, 0.01);
+		ParallelTopicModel model = new ParallelTopicModel(NUM_TOPICS, 1.0, 0.01);
 
 		model.addInstances(ilist);
 
 		model.setNumThreads(1);
 
-		model.setNumIterations(5000);
+		model.setNumIterations(10);
 		try {
-			
+
 			model.estimate();
 
-			//output words and their topic assignment for the first document 
-			Alphabet dataAlphabet = ilist.getDataAlphabet();
-			FeatureSequence tokens = (FeatureSequence) model.getData().get(0).instance.getData();
-			LabelSequence topics = model.getData().get(0).topicSequence;
-			Formatter out = new Formatter(new StringBuilder(), Locale.US);
-			for (int position = 0; position < tokens.getLength(); position++) {
-				out.format("%s-%d ", dataAlphabet.lookupObject(tokens.getIndexAtPosition(position)),
-						topics.getIndexAtPosition(position));
+			TopicInferencer inferencer = model.getInferencer();
+
+			for (int i = 0; i < ilist.size(); i++) {
+				if(i % 100 == 0) {
+					System.out.println("Checking tweet " + i);
+				}
+				TweetInstance tweet = (TweetInstance) ilist.get(i);
+				double[] conditionalProbs = inferencer.getSampledDistribution(tweet, 10, 1, 5);
+
+				tweet.createFeatureVector(conditionalProbs);
+				double[] fv = tweet.getFeatureVector();
+
+				HashMap<Double, Double> bow = new HashMap<>();
+				FeatureSequence fs = (FeatureSequence) tweet.getData();
+				for (int j = 0; j < fs.size(); j++) {
+					Double key = (double) fs.getIndexAtPosition(j);
+					Double count = bow.get(key);
+					if (count == null) {
+						bow.put(key, 1.0);
+					} else {
+						bow.put(key, count + 1);
+					}
+				}
+				
+				for(int j = 0; j < fv.length; j++) {
+					if(j < NUM_TOPICS) {
+						if(fv[j] != conditionalProbs[j]) {
+							System.out.println("Error with topic distribution in feature vector.");
+						}
+					}
+					else {
+						Double feature = (double) j - NUM_TOPICS;
+						Double featureCount = bow.get(feature);
+						if(featureCount == null) {
+							if(fv[j] != 0.0) {
+								System.out.println("Marked the count of a word that is not in the tweet as nonzero");
+							}
+						}
+						else {
+							if(fv[j] != featureCount) {
+								System.out.println("Wrong count for word feature index = " + feature);
+								System.out.println("Real Count = " + featureCount + ", FV Count = " + (int)fv[j]);
+							}
+						}
+					}
+				}
+
 			}
-			System.out.println(out);
-			
-			// Estimate the topic distribution of the first instance, 
-			//  given the current Gibbs state.
-			double[] topicDistribution = model.getTopicProbabilities(0);
-			
-//			// Get an array of sorted sets of word ID/count pairs
-//			ArrayList<TreeSet<IDSorter>> topicSortedWords = model.getSortedWords();
-//			
-//			// Show top 5 words in topics with proportions for the first document
-//			for (int topic = 0; topic < numTopics; topic++) {
-//				Iterator<IDSorter> iterator = topicSortedWords.get(topic).iterator();
-//				
-//				out = new Formatter(new StringBuilder(), Locale.US);
-//				out.format("%d\t%.3f\t", topic, topicDistribution[topic]);
-//				int rank = 0;
-//				while (iterator.hasNext() && rank < 10) {
-//					IDSorter idCountPair = iterator.next();
-//					out.format("%s (%.0f) ", dataAlphabet.lookupObject(idCountPair.getID()), idCountPair.getWeight());
-//					rank++;
-//				}
-//				System.out.println(out);
-//			}
+
+			/* VIEW THE TOPIC ASSIGMENTS OF EACH WORD IN A GIVEN TWEET */
+			// //output words and their topic assignment for the first document
+			// Alphabet dataAlphabet = ilist.getDataAlphabet();
+			// FeatureSequence tokens = (FeatureSequence)
+			// model.getData().get(0).instance.getData();
+			// LabelSequence topics = model.getData().get(0).topicSequence;
+			// Formatter out = new Formatter(new StringBuilder(), Locale.US);
+			// for (int position = 0; position < tokens.getLength(); position++) {
+			// out.format("%s-%d ",
+			// dataAlphabet.lookupObject(tokens.getIndexAtPosition(position)),
+			// topics.getIndexAtPosition(position));
+			// }
+			// System.out.println(out);
+			//
+			// // Estimate the topic distribution of the first instance,
+			// // given the current Gibbs state.
+			// double[] topicDistribution = model.getTopicProbabilities(0);
+
+			/*
+			 * VIEWING IMPORTANT MOST IMPORTANT WORDS ALONG WITH THEIR WEIGHTS IN EACH TOPIC
+			 */
+			// // Get an array of sorted sets of word ID/count pairs
+			// ArrayList<TreeSet<IDSorter>> topicSortedWords = model.getSortedWords();
+			//
+			// // Show top 5 words in topics with proportions for the first document
+			// for (int topic = 0; topic < numTopics; topic++) {
+			// Iterator<IDSorter> iterator = topicSortedWords.get(topic).iterator();
+			//
+			// out = new Formatter(new StringBuilder(), Locale.US);
+			// out.format("%d\t%.3f\t", topic, topicDistribution[topic]);
+			// int rank = 0;
+			// while (iterator.hasNext() && rank < 10) {
+			// IDSorter idCountPair = iterator.next();
+			// out.format("%s (%.0f) ", dataAlphabet.lookupObject(idCountPair.getID()),
+			// idCountPair.getWeight());
+			// rank++;
+			// }
+			// System.out.println(out);
+			// }
 
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 
-		
 	}
-	
-
 
 }

@@ -50,6 +50,7 @@ public class ProcessTweet extends Pipe {
 		data = removeURLs(data);
 
 		tweet.setData(data);
+		tweet.setAsProcessed();
 
 		return tweet;
 	}
