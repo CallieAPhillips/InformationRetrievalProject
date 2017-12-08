@@ -15,6 +15,7 @@ popularHashtags = open(popularHashtagsFile, "r")
 # rateLimit = 15
 for hashtag in popularHashtags:
     print(hashtag)
+    hashtag = hashtag.strip("\n")
     # print(trend)
     # requests+=1
     # query for hashtag (excluding the retweets)
@@ -44,6 +45,9 @@ for hashtag in popularHashtags:
         # remove commas and encode for good measure
         allHashtags = str(allHashtags.encode("utf-8"))
         allHashtags = allHashtags.strip("b").strip("'")
+        hashtag = hashtag.strip("#")
+        if hashtag not in allHashtags:
+            allHashtags+=hashtag + ","
 
         newTweetFile.write("no category yet" + "," + user_name+ ',' + date + "," + contents + "," + allHashtags + "\n")
 
