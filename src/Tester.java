@@ -5,7 +5,11 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Formatter;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Locale;
+import java.util.TreeSet;
 import java.util.regex.Pattern;
 
 import cc.mallet.pipe.CharSequence2TokenSequence;
@@ -17,7 +21,9 @@ import cc.mallet.pipe.TokenSequenceRemoveStopwords;
 import cc.mallet.topics.ParallelTopicModel;
 import cc.mallet.types.Alphabet;
 import cc.mallet.types.FeatureSequence;
+import cc.mallet.types.IDSorter;
 import cc.mallet.types.InstanceList;
+import cc.mallet.types.LabelSequence;
 
 public class Tester {
 
@@ -97,7 +103,7 @@ public class Tester {
 	public static void main(String[] args) {
 
 		Pipe pipe = buildPipe();
-		InstanceList ilist = readFile(new File("sample.csv"), pipe);
+		InstanceList ilist = readFile(new File("tweets.csv"), pipe);
 
 		System.out.println("Corpus Dictionary:");
 		Alphabet dict = ilist.get(0).getAlphabet();
@@ -117,8 +123,8 @@ public class Tester {
 			System.out.println("\n");
 
 		}
-		
-		int numTopics = 4;
+
+		int numTopics = 50;
 		ParallelTopicModel model = new ParallelTopicModel(numTopics, 1.0, 0.01);
 
 		model.addInstances(ilist);
@@ -127,11 +133,49 @@ public class Tester {
 
 		model.setNumIterations(5000);
 		try {
+			
 			model.estimate();
+
+			//output words and their topic assignment for the first document 
+			Alphabet dataAlphabet = ilist.getDataAlphabet();
+			FeatureSequence tokens = (FeatureSequence) model.getData().get(0).instance.getData();
+			LabelSequence topics = model.getData().get(0).topicSequence;
+			Formatter out = new Formatter(new StringBuilder(), Locale.US);
+			for (int position = 0; position < tokens.getLength(); position++) {
+				out.format("%s-%d ", dataAlphabet.lookupObject(tokens.getIndexAtPosition(position)),
+						topics.getIndexAtPosition(position));
+			}
+			System.out.println(out);
+			
+			// Estimate the topic distribution of the first instance, 
+			//  given the current Gibbs state.
+			double[] topicDistribution = model.getTopicProbabilities(0);
+			
+//			// Get an array of sorted sets of word ID/count pairs
+//			ArrayList<TreeSet<IDSorter>> topicSortedWords = model.getSortedWords();
+//			
+//			// Show top 5 words in topics with proportions for the first document
+//			for (int topic = 0; topic < numTopics; topic++) {
+//				Iterator<IDSorter> iterator = topicSortedWords.get(topic).iterator();
+//				
+//				out = new Formatter(new StringBuilder(), Locale.US);
+//				out.format("%d\t%.3f\t", topic, topicDistribution[topic]);
+//				int rank = 0;
+//				while (iterator.hasNext() && rank < 10) {
+//					IDSorter idCountPair = iterator.next();
+//					out.format("%s (%.0f) ", dataAlphabet.lookupObject(idCountPair.getID()), idCountPair.getWeight());
+//					rank++;
+//				}
+//				System.out.println(out);
+//			}
+
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 
+		
 	}
+	
+
 
 }

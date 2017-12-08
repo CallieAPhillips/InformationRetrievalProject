@@ -23,7 +23,7 @@ public class ProcessTweet extends Pipe {
 		TweetInstance tweet = (TweetInstance) carrier;
 		String data = (String) tweet.getData();
 
-		//split the data using regex
+		// split the data using regex
 		Pattern pattern = getPattern(data);
 		Matcher matcher = pattern.matcher(data);
 		matcher.matches();
@@ -45,15 +45,18 @@ public class ProcessTweet extends Pipe {
 			String ht = "#" + hashtags.get(i);
 			data = data.replaceAll(ht, "");
 		}
+		
+		//remove http urls from the content
+		data = removeURLs(data);
 
 		tweet.setData(data);
-		
+
 		return tweet;
 	}
 
 	/**
-	 * Get the appropriate regex pattern to split the data
-	 *  based on the number of hashtags in the tweet
+	 * Get the appropriate regex pattern to split the data based on the number of
+	 * hashtags in the tweet
 	 */
 	private Pattern getPattern(String data) {
 		String regex = "";
@@ -77,6 +80,48 @@ public class ProcessTweet extends Pipe {
 			}
 		}
 		return count;
+	}
+
+	/**
+	 * @param content
+	 * @return content will all http urls removed
+	 */
+	private String removeURLs(String content) {
+		// remove all urls of the form 'http...'
+		// does not remove a url at the end of the string with no trailing space
+		content = content.replaceAll("https?://.*?\\s+", "");
+
+		StringBuilder s = new StringBuilder(content);
+		for (int i = 0; i < s.length() - 4; i++) {
+			// if current four letter substring is http
+			if (s.substring(i, i + 4).equals("http")) {
+				boolean spaceAtEnd = false;
+				// search to make sure there is no space in the remaining text
+				// meaning this http url is the last word in the content
+				for (int j = i + 4; j < s.length(); j++) {
+					// if space is found, make note of it
+					if (s.charAt(j) == ' ' || s.charAt(j) == '\t' || s.charAt(j) == '\n') {
+						spaceAtEnd = true;
+					}
+				}
+				// if there was no space, remove the remaining substring containing the url
+				if (!spaceAtEnd) {
+					s.replace(i, s.length(), "");
+					break;
+				}
+			}
+		}
+		return s.toString();
+	}
+	
+	/**
+	 * MAYBE IMPLEMENT THIS TO IMPROVE PERFORMANCE
+	 * Remove @ metions to other users
+	 * @param content
+	 * @return content without mentions
+	 */
+	private String removeMentions(String content) {
+		return content;
 	}
 
 }
