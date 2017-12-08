@@ -129,20 +129,25 @@ public class Tester {
 		model.setNumIterations(10);
 		try {
 
+			// construct the LDA topic model
 			model.estimate();
 
+			// construct the feature vector for each tweet
 			TopicInferencer inferencer = model.getInferencer();
-
 			for (int i = 0; i < ilist.size(); i++) {
-				if(i % 100 == 0) {
+				if (i % 100 == 0) {
 					System.out.println("Checking tweet " + i);
 				}
+				// grab the current tweet
 				TweetInstance tweet = (TweetInstance) ilist.get(i);
+				// get the conditional topic distribution for each tweet instance
 				double[] conditionalProbs = inferencer.getSampledDistribution(tweet, 10, 1, 5);
 
+				// construct and retrieve the feature vector
 				tweet.createFeatureVector(conditionalProbs);
 				double[] fv = tweet.getFeatureVector();
 
+				// find the actual counts of each word feature in the tweet's feature sequence
 				HashMap<Double, Double> bow = new HashMap<>();
 				FeatureSequence fs = (FeatureSequence) tweet.getData();
 				for (int j = 0; j < fs.size(); j++) {
@@ -154,25 +159,25 @@ public class Tester {
 						bow.put(key, count + 1);
 					}
 				}
-				
-				for(int j = 0; j < fv.length; j++) {
-					if(j < NUM_TOPICS) {
-						if(fv[j] != conditionalProbs[j]) {
+
+				// loop over all values and check if they match the origianl topic distribution
+				// and bag-of-words
+				for (int j = 0; j < fv.length; j++) {
+					if (j < NUM_TOPICS) {
+						if (fv[j] != conditionalProbs[j]) {
 							System.out.println("Error with topic distribution in feature vector.");
 						}
-					}
-					else {
+					} else {
 						Double feature = (double) j - NUM_TOPICS;
 						Double featureCount = bow.get(feature);
-						if(featureCount == null) {
-							if(fv[j] != 0.0) {
+						if (featureCount == null) {
+							if (fv[j] != 0.0) {
 								System.out.println("Marked the count of a word that is not in the tweet as nonzero");
 							}
-						}
-						else {
-							if(fv[j] != featureCount) {
+						} else {
+							if (fv[j] != featureCount) {
 								System.out.println("Wrong count for word feature index = " + feature);
-								System.out.println("Real Count = " + featureCount + ", FV Count = " + (int)fv[j]);
+								System.out.println("Real Count = " + featureCount + ", FV Count = " + (int) fv[j]);
 							}
 						}
 					}
