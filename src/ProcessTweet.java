@@ -52,6 +52,12 @@ public class ProcessTweet extends Pipe {
 		tweet.setData(data);
 		tweet.setAsProcessed();
 
+		classifyByHashtags(carrier);
+		TweetInstance tweetInstance = (TweetInstance) carrier;
+		System.out.println(carrier.getName() + ": " + carrier.getTarget().toString());
+		for (String tag : tweetInstance.getHashtags())
+			System.out.println(tag);
+
 		return tweet;
 	}
 
@@ -113,6 +119,25 @@ public class ProcessTweet extends Pipe {
 			}
 		}
 		return s.toString();
+	}
+	
+	public void classifyByHashtags(Instance isntance) {
+		TweetInstance tweet = (TweetInstance) isntance;
+		ArrayList<String> tags = tweet.getHashtags();
+		// tweetList = [category, user_name, date, contents, hashtags..]
+		int minTopic = 9;
+		for (String tag : tags) {
+			if(Tester.popularHashtags.get(tag) != null) {
+				int label = (int) Integer.parseInt(Tester.popularHashtags.get(tag));
+				System.out.println("Label: " + label +  "min topic " + minTopic);
+				if (label != 0 && label < minTopic) {
+					minTopic = label;
+				}
+			}
+		}
+//		System.out.println(minTopic-1);
+		tweet.setTarget(Tester.topics[minTopic - 1]);
+
 	}
 	
 	/**
