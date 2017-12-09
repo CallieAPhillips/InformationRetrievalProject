@@ -122,17 +122,15 @@ public class ProcessTweet extends Pipe {
 		TweetInstance tweet = (TweetInstance) isntance;
 		ArrayList<String> tags = tweet.getHashtags();
 		// tweetList = [category, user_name, date, contents, hashtags..]
-//		find one topic out of the following ["Sports", "Politics & Social Issues", "Arts", "Science And Technology", "Business And Companies", 
-//		"Environment", "Spiritual", "Other And Miscilleneous"]
 		int minTopic = 8;
 		for (String tag : tags) {
-			tag = "#"+tag;	
+			tag = "#"+tag;
 			int topic = Tester.popularHashtags.get(tag) != null? (int) Integer.parseInt(Tester.popularHashtags.get(tag)): 9;
 			if (topic < minTopic) {
 				minTopic = topic;
 			}
 		}
-		tweet.setTarget(Tester.topics[minTopic - 1]);	//minus one because we began the topic indexing at 1
+		tweet.setTarget(Tester.topics[minTopic - 1]);
 
 	}
 
