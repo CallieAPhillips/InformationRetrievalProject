@@ -4,10 +4,12 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Formatter;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Scanner;
 import java.util.TreeSet;
@@ -35,6 +37,9 @@ public class Tester {
 
 	// set the number of topics in the LDA
 	public static final int NUM_TOPICS = 50;
+	public static final String[] topics = {"Sports", "Politics & Social Issues", "Arts", "Science And Technology", "Business And Companies", 
+			"Environment", "Spiritual", "Other And Miscilleneous"};
+	
 
 	// the public mapping of a hashtag to a certain topic
 	// this is manually defined in the popular hashtag text file
@@ -52,11 +57,11 @@ public class Tester {
 		popularHashtags = new HashMap<>();
 
 		Scanner sc = new Scanner(new File(filename));
-		while (sc.hasNext()) {
+		while (sc.hasNextLine()) {
 			String hashtag = sc.nextLine();
-			popularHashtags.put(hashtag, hashtag);
+			List<String> tagAndTopic = Arrays.asList(hashtag.split(","));
+			popularHashtags.put(tagAndTopic.get(0), tagAndTopic.get(1));
 		}
-
 	}
 
 	public static Pipe buildPipe() {
@@ -92,13 +97,13 @@ public class Tester {
 	public static void main(String[] args) {
 
 		try {
-			defineHashtagMapping("popularHashtags.txt");
+			defineHashtagMapping("result.txt");
 		} catch (FileNotFoundException e1) {
 			e1.printStackTrace();
 		}
-
 		Pipe pipe = buildPipe();
 		InstanceList ilist = readFile(new File("tweets.csv"), pipe);
+		
 
 		System.out.println("Corpus Dictionary:");
 		Alphabet dictionary = ilist.getAlphabet();
@@ -184,7 +189,12 @@ public class Tester {
 				}
 
 			}
-
+//			for(Instance each: ilist) {
+//						TweetInstance tweetInstance = (TweetInstance)each;
+//						System.out.println(tweetInstance.getName()+ ": "+ tweetInstance.getTarget().toString());
+//						for(String tag: tweetInstance.getHashtags()) 
+//							System.out.println(tag);
+//					}
 			/* VIEW THE TOPIC ASSIGMENTS OF EACH WORD IN A GIVEN TWEET */
 			// //output words and their topic assignment for the first document
 			// Alphabet dataAlphabet = ilist.getDataAlphabet();
