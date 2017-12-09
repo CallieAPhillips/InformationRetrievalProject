@@ -4,7 +4,6 @@ import java.util.regex.Pattern;
 
 import cc.mallet.pipe.Pipe;
 import cc.mallet.types.Instance;
-import cc.mallet.types.InstanceList;
 
 public class ProcessTweet extends Pipe {
 
@@ -53,9 +52,9 @@ public class ProcessTweet extends Pipe {
 		tweet.setData(data);
 		tweet.setAsProcessed();
 		classifyByHashtags(carrier);
-		
 
 		return tweet;
+
 	}
 
 	/**
@@ -119,13 +118,16 @@ public class ProcessTweet extends Pipe {
 	}
 
 	public void classifyByHashtags(Instance isntance) {
+
 		TweetInstance tweet = (TweetInstance) isntance;
 		ArrayList<String> tags = tweet.getHashtags();
 		// tweetList = [category, user_name, date, contents, hashtags..]
 		int minTopic = 8;
 		for (String tag : tags) {
-			tag = "#"+tag;
-			int topic = Tester.popularHashtags.get(tag) != null? (int) Integer.parseInt(Tester.popularHashtags.get(tag)): 9;
+			tag = "#" + tag;
+			int topic = Tester.popularHashtags.get(tag) != null
+					? (int) Integer.parseInt(Tester.popularHashtags.get(tag))
+					: 9;
 			if (topic < minTopic) {
 				minTopic = topic;
 			}

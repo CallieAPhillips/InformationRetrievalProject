@@ -135,7 +135,7 @@ public class NaiveBayes extends Classifier implements Serializable
         */
   public Classification classify (Instance instance)
   {
-        // Note that the current size of the label alphabet can be larger
+      // Note that the current size of the label alphabet can be larger
       // than it was at the time of training.  We are careful here
       // to correctly handle those labels here. For example,
       // we assume the log prior probability of those classes is
