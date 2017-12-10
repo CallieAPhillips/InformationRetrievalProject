@@ -76,6 +76,14 @@ public class TweetInstance extends Instance {
 			int featureIndex = fs.getIndexAtPosition(i);
 			featureVector[k + featureIndex] += 1;
 		}
+		
+//		for(int i = 0; i < fs.size(); i++) {
+//			int featureIndex = fs.getIndexAtPosition(i);
+//			String word = (String) getAlphabet().lookupObject(featureIndex);
+//			featureVector[k + featureIndex] = featureVector[k + featureIndex] * Tester.idfValues.get(word);
+//		}
+		
+		
 	}
 	
 	public void setAsProcessed() {

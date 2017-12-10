@@ -2,7 +2,6 @@
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -23,6 +22,7 @@ import cc.mallet.topics.TopicInferencer;
 import cc.mallet.types.FeatureSequence;
 import cc.mallet.types.InstanceList;
 import cc.mallet.types.Label;
+import gnu.trove.TObjectDoubleHashMap;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
 import weka.classifiers.functions.SMO;
@@ -37,6 +37,8 @@ public class Tester {
 
 	public static final String[] topics = { "Sports", "Politics & Social Issues", "Arts", "Science And Technology",
 			"Business And Companies", "Environment", "Spiritual", "Other And Miscilleneous" };
+
+	public static TObjectDoubleHashMap<String> idfValues;
 
 	// the public mapping of a hashtag to a certain topic
 	// this is manually defined in the popular hashtag text file
@@ -176,12 +178,23 @@ public class Tester {
 		attributes.add(new Attribute("label", labelValues));
 
 		// define the Instances object
-		Instances data = new Instances("myData", attributes, 100);
+		Instances data = new Instances("myData", attributes, 12000);
 
 		// set the tweet's label as the class attribute
 		data.setClassIndex(data.numAttributes() - 1);
 
 		return data;
+	}
+
+	public static double mean(double[] arr) {
+		if (arr.length == 0) {
+			System.out.println("Cannot calculate mean. Empty array.");
+		}
+		double mean = 0;
+		for (double d : arr) {
+			mean += d;
+		}
+		return mean / arr.length;
 	}
 
 	public static void main(String[] args) {
@@ -202,6 +215,9 @@ public class Tester {
 
 		ilist = ilist.subList(0, 500);
 
+		// calculate the idf values for each word in the corpus
+		idfValues = TFIDF.getIdf(ilist);
+
 		ParallelTopicModel model = new ParallelTopicModel(NUM_TOPICS, 1.0, 0.01);
 		model.addInstances(ilist);
 		model.setNumThreads(1);
@@ -221,7 +237,7 @@ public class Tester {
 			for (int i = 0; i < ilist.size(); i++) {
 
 				if (i % 100 == 0) {
-					System.out.println("Transforming tweet " + (i + 1));
+					System.out.println("Transforming tweet " + i);
 				}
 
 				// grab the current tweet
@@ -253,17 +269,45 @@ public class Tester {
 
 			}
 
-			Instances train = new Instances(data, 0, 450);
-			Instances test = new Instances(data, 450, 50);
+			// 10-fold cross validation
+			int k = 10;
+			int len = data.size() / k;
+			int remainder = data.size() % k;
+			double[] err = new double[k];
+			
+			int iStart = 0, toCopy = 0;
+			for (int i = 1; i <= k; i++) {
+				iStart += toCopy;
+				if (i <= remainder) {
+					toCopy = len + 1;
+				} else {
+					toCopy = len;
+				}
 
-			// build the classifier
-			Classifier svm = (Classifier) new SMO();
-			svm.buildClassifier(train);
+				Instances test = new Instances(data, iStart, toCopy);
+				Instances train = new Instances(data, 0, iStart);
+				for (int j = iStart + toCopy; j < data.size(); j++) {
+					train.add(data.get(j));
+				}
 
-			// classify the testing set
-			Evaluation eval_train = new Evaluation(train);
-			eval_train.evaluateModel(svm, test);
-			System.out.println(eval_train.toSummaryString());
+				// build the classifier
+				Classifier svm = (Classifier) new SMO();
+				svm.buildClassifier(train);
+
+				// classify the testing set
+				Evaluation eval_train = new Evaluation(train);
+				eval_train.evaluateModel(svm, test);
+
+				System.out.println(eval_train.toSummaryString());
+				err[i - 1] = eval_train.pctCorrect();
+
+				// System.out.println("Fold " + i + ": \t[" + iStart + ":" + (iStart + toCopy -
+				// 1) + "]");
+			}
+
+			System.out.println(mean(err));
+			
+			
 
 		} catch (Exception e) {
 			e.printStackTrace();

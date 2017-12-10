@@ -73,11 +73,11 @@ public class Example {
 			}
 
 			if (label.equals("Sport")) {
-				di.setValue(attributes.get(10000), "Sports");
+				di.setValue(attributes.get(attributes.size()-1), "Sports");
 			} else if (label.equals("Politics")) {
-				di.setValue(attributes.get(10000), "Politics & Social Issues");
+				di.setValue(attributes.get(attributes.size()-1), "Politics & Social Issues");
 			} else {
-				di.setValue(attributes.get(10000), "Arts");
+				di.setValue(attributes.get(attributes.size()-1), "Arts");
 			}
 
 			train.add(di);
@@ -130,11 +130,11 @@ public class Example {
 			}
 
 			if (label.equals("Sport")) {
-				di.setValue(attributes.get(10000), "Sports");
+				di.setValue(attributes.get(attributes.size()-1), "Sports");
 			} else if (label.equals("Politics")) {
-				di.setValue(attributes.get(10000), "Politics & Social Issues");
+				di.setValue(attributes.get(attributes.size()-1), "Politics & Social Issues");
 			} else {
-				di.setValue(attributes.get(10000), "Arts");
+				di.setValue(attributes.get(attributes.size()-1), "Arts");
 			}
 			test.add(di);
 		}
@@ -149,14 +149,15 @@ public class Example {
 
 		Evaluation eval_train = new Evaluation(train);
 		eval_train.evaluateModel(model, test);
+//		eval_train.crossValidateModel(model, train, 10, new Random());
 		System.out.println(eval_train.toSummaryString());
+		System.out.println(eval_train.correct());
+		System.out.println(eval_train.errorRate());
+		System.out.println(eval_train.incorrect());
+		System.out.println(eval_train.rootMeanSquaredError());
+		System.out.println(eval_train.kappa());
+		System.out.println(eval_train.pctCorrect());
 
-		 for(int i = 0; i < test.size(); i++) {
-		 System.out.println(test.get(i));
-		 }
-
-		 System.out.println(train.attribute(train.numAttributes()-1));
-		 System.out.println(train.classAttribute());
 		 
 //		System.out.println("-------------------------------");
 //		for (int i = 0; i < test.size(); i++) {
