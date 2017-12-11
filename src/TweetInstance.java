@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -46,7 +47,7 @@ public class TweetInstance extends Instance {
 	 * 
 	 * @param topicDistribution - conditional topic distribution
 	 */
-	public void createFeatureVector(double[] topicDistribution) {
+	public void createFeatureVector(double[] topicDistribution, ArrayList<Integer> topWords) {
 		
 		//make sure the data is processed before creating a feature vector
 		if(!this.isProcessed) {
@@ -57,8 +58,8 @@ public class TweetInstance extends Instance {
 		//the number of topics
 		int k = topicDistribution.length;
 		
-		//the total number of words in the vocabulary
-		int v = getAlphabet().size();
+		//the total number of top words
+		int v = topWords.size();
 		
 		//the number of features in the vector (topics dist. and BoW)
 		int p = k + v;
@@ -69,19 +70,26 @@ public class TweetInstance extends Instance {
 			featureVector[i] = topicDistribution[i];
 		}
 		
-		//fill in the remaining entries as the TF of each word 
-		//using the feature index for each word 
+		//collect the counts of each of the top words
+		//in this TweetInstances FeatureSequence
+		int[] counts = new int[v];
 		FeatureSequence fs = (FeatureSequence) this.getData();
-		for(int i = 0; i < fs.size(); i++) {
-			int featureIndex = fs.getIndexAtPosition(i);
-			featureVector[k + featureIndex] += 1;
+		for(int i = 0; i < v; i++) {
+			counts[i] = 0;
+			int word = topWords.get(i);
+			for(int j = 0; j < fs.size(); j++) {
+				int featureIndex = fs.getIndexAtPosition(j);
+				if(word == featureIndex) {
+					counts[i] += 1;
+				}
+			}
 		}
 		
-//		for(int i = 0; i < fs.size(); i++) {
-//			int featureIndex = fs.getIndexAtPosition(i);
-//			String word = (String) getAlphabet().lookupObject(featureIndex);
-//			featureVector[k + featureIndex] = featureVector[k + featureIndex] * Tester.idfValues.get(word);
-//		}
+		//set the remaining elements in the feature vector 
+		//as the counts of the top words (subset of BoW)
+		for(int i = k; i < p; i++) {
+			featureVector[i] = counts[i-k];
+		}
 		
 		
 	}

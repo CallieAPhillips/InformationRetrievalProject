@@ -1195,7 +1195,7 @@ public class ParallelTopicModel implements Serializable {
 	}
 
 	public String displayTopWords (int numWords, boolean usingNewLines) {
-
+		
 		StringBuilder out = new StringBuilder();
 
 		ArrayList<TreeSet<IDSorter>> topicSortedWords = getSortedWords();

@@ -34,3 +34,46 @@ Things to note:
 * Must decide on the appropriate ML algorithm to apply (and also a framework for ML algorithms, I believe Mallet may already have some)
 (keep in mind that there is likely going to more features in the matrix than actual tweets, which maybe troublesome)
 * For step 6, professor Wang suggested a TF-IDF bag-of-words representation will work better
+
+Results (LDA is run using 2000 iterations, 10-fold CV):
+
+(num of topics, top words chosen from each topic)
+
+
+
+Naive Bayes
+20, 7: 53.4 % (50.18% w/ IDF )
+20, 20: 58.2%
+20, 100: 67.7 %
+20, 200: 70.02%
+50, 7: 60.06 %
+50, 20: 64.7 % (61.59 % w/ IDF)
+50, 100: 71.1 %
+50, 200: 72.16%
+100, 7: 64.65%
+100, 20: 69.16%
+200, 7: 67.7%
+1000,7: 71.14 %
+
+why is it important?
+Twitter has a basic "classification" system on their home page when the user is logged out. 
+The user is able to browse tweets based on 12 predefined topics. 
+It appears Twitter uses more of a catalog for most of the topics (i.e. for Music it is only verified music/artist accounts)
+Our goal is to classify any tweet using its content alone.
+This can be extrapolated so that a user's timeline can be filtered based on a certain topic.
+
+*including mentions helped out --> started to associate certain user profiles with different topics
+*including hashtags also helped --> a lot of times users use hashtags to emphasize a regular word
+*including idf values noticeably weakened the performance --> *small document size means more terms will have idf, not very meaningful...
+*slang, general carelessness --> lots of mispellings, further increases IDF values
+
+potential improvements:
+*boosting important topical words
+*introducing new feature columns as interaction terms (capture two important features together, maybe the topic distributions together)
+*twitter domain stop words, mainly for acronyms
+*better stemming to deal with grammar issues (i.e. map omggg to omg)
+*understand what number to pick for the number of topics in the LDA and the number of words sampled from each topic
+	--> performance seemed to improve as K increased, but limited by runtime and diminishing returns
+	--> no set way of finding K, genetic algorithms have been suggested
+	--> there is a relation between K and the number of topics sampled from each 
+

@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -33,21 +34,35 @@ public class ProcessTweet extends Pipe {
 		tweet.setUser(matcher.group(1));
 		tweet.setTimeStamp(matcher.group(2));
 		data = matcher.group(3);
+		tweet.setSource(data);
 
 		// accumulate all of the tweet's hashtags
 		for (int i = 4; i <= numGroups; i++) {
 			tweet.addHashtag(matcher.group(i));
 		}
 
+		// fetch all hashtags
 		ArrayList<String> hashtags = tweet.getHashtags();
-		// remove all occurrences of the hashtags from the content
-		for (int i = 0; i < hashtags.size(); i++) {
-			String ht = "#" + hashtags.get(i);
-			data = data.replaceAll(ht, "");
+		// fetch the collection of popular hashtags
+		HashMap<String, String> popular = Tester.popularHashtags;
+		for (String h : hashtags) {
+			h = "#" + h;
+			// if a mapping exists from a hashtag to a classification
+			// then that hashtag is a popular and must be removed
+			if (popular.get(h) != null) {
+				data = data.replaceAll(h, "");
+			}
 		}
 
 		// remove http urls from the content
 		data = removeURLs(data);
+
+//		// remove the mentions from the content of the tweet
+//		try {
+//			data = remove(data, "@");
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
 
 		tweet.setData(data);
 		tweet.setAsProcessed();
@@ -137,13 +152,39 @@ public class ProcessTweet extends Pipe {
 	}
 
 	/**
-	 * MAYBE IMPLEMENT THIS TO IMPROVE PERFORMANCE Remove @ metions to other users
 	 * 
 	 * @param content
-	 * @return content without mentions
+	 * @return content without specified word types (hash-tags or mentions)
 	 */
-	private String removeMentions(String content) {
-		return content;
+	private String remove(String content, String removalType) throws Exception {
+
+		if (!removalType.equals("#") && !removalType.equals("@")) {
+			throw new Exception("Wrong input for removalType");
+		}
+
+		// remove all @ mentions of the form '@user1'
+		// does not remove if at the end of the string with no trailing space
+		content = content.replaceAll(removalType + ".*?\\s+", "");
+
+		StringBuilder s = new StringBuilder(content);
+		for (int i = 0; i < s.length(); i++) {
+			if (s.charAt(i) == removalType.charAt(0)) {
+				boolean spaceAtEnd = false;
+				// search to make sure there is no space in the remaining text
+				for (int j = i; j < s.length(); j++) {
+					// if space is found, make note of it
+					if (s.charAt(j) == ' ' || s.charAt(j) == '\t' || s.charAt(j) == '\n') {
+						spaceAtEnd = true;
+					}
+				}
+				// if there was no space, remove the remaining substring containing the url
+				if (!spaceAtEnd) {
+					s.replace(i, s.length(), "");
+					break;
+				}
+			}
+		}
+		return s.toString();
 	}
 
 }

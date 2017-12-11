@@ -100,6 +100,9 @@ public class TopicModel {
 		TopicInferencer inferencer = model.getInferencer();
 		double[] testProbabilities = inferencer.getSampledDistribution(testing.get(0), 10, 1, 5);
 		System.out.println("0\t" + testProbabilities[0]);
+		for(int i = 0; i < testProbabilities.length; i++) {
+			System.out.print(testProbabilities[i] + " ");
+		}
 	}
 
 }

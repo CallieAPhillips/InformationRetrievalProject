@@ -2,12 +2,16 @@
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
+import java.util.TreeSet;
 import java.util.regex.Pattern;
 
 import cc.mallet.pipe.CharSequence2TokenSequence;
@@ -19,13 +23,15 @@ import cc.mallet.pipe.TokenSequence2FeatureSequence;
 import cc.mallet.pipe.TokenSequenceRemoveStopwords;
 import cc.mallet.topics.ParallelTopicModel;
 import cc.mallet.topics.TopicInferencer;
+import cc.mallet.types.Alphabet;
 import cc.mallet.types.FeatureSequence;
+import cc.mallet.types.IDSorter;
 import cc.mallet.types.InstanceList;
 import cc.mallet.types.Label;
-import gnu.trove.TObjectDoubleHashMap;
+import cc.mallet.types.LabelSequence;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
-import weka.classifiers.functions.SMO;
+import weka.classifiers.bayes.NaiveBayesMultinomial;
 import weka.core.Attribute;
 import weka.core.Instances;
 import weka.core.SparseInstance;
@@ -35,10 +41,13 @@ public class Tester {
 	// set the number of topics in the LDA
 	public static final int NUM_TOPICS = 50;
 
+	// number of top words extracted from each LDA topic
+	public static final int samplePerTopic = 200;
+
+	public static double[] idfValues;
+
 	public static final String[] topics = { "Sports", "Politics & Social Issues", "Arts", "Science And Technology",
 			"Business And Companies", "Environment", "Spiritual", "Other And Miscilleneous" };
-
-	public static TObjectDoubleHashMap<String> idfValues;
 
 	// the public mapping of a hashtag to a certain topic
 	// this is manually defined in the popular hashtag text file
@@ -65,8 +74,8 @@ public class Tester {
 	public static Pipe buildPipe() {
 		ArrayList<Pipe> pipeList = new ArrayList<Pipe>();
 
-		pipeList.add(new ProcessTweet());
 		pipeList.add(new CharSequenceLowercase());
+		pipeList.add(new ProcessTweet());
 		pipeList.add(new CharSequence2TokenSequence());
 		pipeList.add(new TokenSequenceRemoveStopwords(new File("en.txt"), "UTF-8", false, false, false));
 		pipeList.add(new TokenSequence2FeatureSequence());
@@ -178,7 +187,7 @@ public class Tester {
 		attributes.add(new Attribute("label", labelValues));
 
 		// define the Instances object
-		Instances data = new Instances("myData", attributes, 12000);
+		Instances data = new Instances("myData", attributes, tweetCapacity);
 
 		// set the tweet's label as the class attribute
 		data.setClassIndex(data.numAttributes() - 1);
@@ -197,7 +206,84 @@ public class Tester {
 		return mean / arr.length;
 	}
 
-	public static void main(String[] args) {
+	public static void writeAlphabet(Alphabet a, String file) {
+		try {
+			PrintWriter p = new PrintWriter(file);
+			a.dump(p);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	public static int mostProbableTopic(double[] p) {
+		double mostProbabale = -1.0;
+		int index = -1;
+		for (int i = 0; i < p.length; i++) {
+			if (p[i] > mostProbabale) {
+				mostProbabale = p[i];
+				index = i;
+			}
+		}
+
+		if (mostProbabale > 0.1) {
+			return index;
+		}
+
+		return -1;
+	}
+
+	public static HashSet<String> getTopWords(ParallelTopicModel model, int numWords) {
+
+		HashSet<String> topWords = new HashSet<>();
+		Alphabet alphabet = model.getAlphabet();
+
+		ArrayList<TreeSet<IDSorter>> topicSortedWords = model.getSortedWords();
+
+		// Print results for each topic
+		for (int topic = 0; topic < NUM_TOPICS; topic++) {
+			TreeSet<IDSorter> sortedWords = topicSortedWords.get(topic);
+			int word = 0;
+			Iterator<IDSorter> iterator = sortedWords.iterator();
+
+			while (iterator.hasNext() && word < numWords) {
+				IDSorter info = iterator.next();
+				topWords.add((String) alphabet.lookupObject(info.getID()));
+				word++;
+			}
+
+		}
+
+		return topWords;
+
+	}
+
+	/**
+	 * Return the idf value of a given word
+	 * 
+	 * @param ilist
+	 *            list of documents
+	 * @param word
+	 * @return the IDF value of that word
+	 */
+	public static double idf(InstanceList ilist, int word) {
+		double n = 0;
+
+		for (int i = 0; i < ilist.size(); i++) {
+			TweetInstance t = (TweetInstance) ilist.get(i);
+			FeatureSequence fs = (FeatureSequence) t.getData();
+			for (int j = 0; j < fs.size(); j++) {
+				int featureIndex = fs.getIndexAtPosition(j);
+				if (featureIndex == word) {
+					n++;
+					break;
+				}
+			}
+		}
+
+		return Math.log((double) ilist.size() / n) + 1;
+	}
+
+	public static void main(String[] args) throws Exception {
 
 		long start = System.currentTimeMillis();
 
@@ -210,43 +296,67 @@ public class Tester {
 		Pipe pipe = buildPipe();
 		InstanceList ilist = readFile(new File("tweets.csv"), pipe);
 
+		writeAlphabet(ilist.getAlphabet(), "vocabulary.txt");
+
 		// shuffle the tweets for cross validation later on, seed = 37
 		ilist.shuffle(new Random(37));
-
-		ilist = ilist.subList(0, 500);
-
-		// calculate the idf values for each word in the corpus
-		idfValues = TFIDF.getIdf(ilist);
 
 		ParallelTopicModel model = new ParallelTopicModel(NUM_TOPICS, 1.0, 0.01);
 		model.addInstances(ilist);
 		model.setNumThreads(1);
-		model.setNumIterations(1000);
+		model.setNumIterations(2000);
 
 		try {
 
 			// construct the LDA topic model
 			model.estimate();
+			TopicInferencer inferencer = model.getInferencer();
+
+			HashSet<String> topWords = getTopWords(model, samplePerTopic);
+			ArrayList<Integer> topWordIndeces = new ArrayList<Integer>();
+			for (String word : topWords) {
+				int featureIndex = ilist.getAlphabet().lookupIndex(word);
+				topWordIndeces.add(featureIndex);
+			}
+
+			/* IDF was found not to improve the accuracy */
+//			 idfValues = new double[topWordIndeces.size()];
+//			 for(int i = 0; i < topWordIndeces.size(); i++) {
+//			 idfValues[i] = idf(ilist, topWordIndeces.get(i));
+//			 }
+
+			/* Led to OutOfMemoryError due to growIfNecessary() function in FeatureSequence*/
+//			// boosting important words
+//			for (int i = 0; i < ilist.size(); i++) {
+//				TweetInstance ti = (TweetInstance) ilist.get(i);
+//				FeatureSequence fs = (FeatureSequence) ti.getData();
+//				for (int j = 0; j < fs.size(); j++) {
+//					int featureIndex = fs.getIndexAtPosition(j);
+//					if (topWordIndeces.contains(featureIndex)) {
+//						for (int rep = 0; rep < 2; rep++)
+//							fs.add(featureIndex);
+//					}
+//				}
+//			}
 
 			// set up the Instances object for classification
-			Instances data = defineFeatures(NUM_TOPICS + ilist.getAlphabet().size(), ilist.size());
+			Instances data = defineFeatures(NUM_TOPICS + topWords.size(), ilist.size());
 
 			// construct the feature vector for each tweet
 			// and store them in the weka Instances
-			TopicInferencer inferencer = model.getInferencer();
 			for (int i = 0; i < ilist.size(); i++) {
 
-				if (i % 100 == 0) {
-					System.out.println("Transforming tweet " + i);
+				if (i % 1000 == 0) {
+					System.out.println("Working on tweet " + i);
 				}
 
 				// grab the current tweet
 				TweetInstance tweet = (TweetInstance) ilist.get(i);
 				// get the conditional topic distribution for each tweet instance
-				double[] conditionalProbs = inferencer.getSampledDistribution(tweet, 10, 1, 5);
+				double[] conditionalProbs = inferencer.getSampledDistribution(tweet, 2000, 1, 5);
 
 				// construct and retrieve the feature vector
-				tweet.createFeatureVector(conditionalProbs);
+				tweet.createFeatureVector(conditionalProbs, topWordIndeces);
 				double[] featureVector = tweet.getFeatureVector();
 
 				// grab the label for this tweet
@@ -273,8 +383,8 @@ public class Tester {
 			int k = 10;
 			int len = data.size() / k;
 			int remainder = data.size() % k;
-			double[] err = new double[k];
-			
+			double[] accuracy = new double[k];
+
 			int iStart = 0, toCopy = 0;
 			for (int i = 1; i <= k; i++) {
 				iStart += toCopy;
@@ -290,24 +400,20 @@ public class Tester {
 					train.add(data.get(j));
 				}
 
-				// build the classifier
-				Classifier svm = (Classifier) new SMO();
-				svm.buildClassifier(train);
+				Classifier classifier = (Classifier) new NaiveBayesMultinomial();
+				classifier.buildClassifier(train);
 
 				// classify the testing set
 				Evaluation eval_train = new Evaluation(train);
-				eval_train.evaluateModel(svm, test);
+				eval_train.evaluateModel(classifier, test);
 
-				System.out.println(eval_train.toSummaryString());
-				err[i - 1] = eval_train.pctCorrect();
+				accuracy[i - 1] = eval_train.pctCorrect();
 
-				// System.out.println("Fold " + i + ": \t[" + iStart + ":" + (iStart + toCopy -
-				// 1) + "]");
 			}
 
-			System.out.println(mean(err));
-			
-			
+			System.out.println(mean(accuracy) + "%");
+
+			System.out.println("Feature vector length = " + ((TweetInstance) ilist.get(0)).getFeatureVector().length);
 
 		} catch (Exception e) {
 			e.printStackTrace();
